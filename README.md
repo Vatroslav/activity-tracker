@@ -5,7 +5,7 @@ A Windows application that tracks active windows and Chrome tabs for time tracki
 ## Features
 
 - **Track Active Windows**: Monitor which application/window is currently in focus
-- **Track Chrome Tabs**: Capture URL, title, and profile name from Chrome
+- **Track Chrome Tabs**: Capture URL, title, and profile name from Chrome by using an extension
 - **Calculate Duration**: Automatically track how long each window/tab was in focus
 - **Categorize Activities**: Match activities to categories based on regex rules
 - **System Tray Integration**: Runs quietly in the background with tray icon controls
@@ -287,7 +287,7 @@ activity-tracker/
 
 ### Chrome Extension
 
-The extension is minimal (~60 lines) and runs as a service worker:
+The extension is minimal and runs as a service worker:
 
 - Listens for `chrome.tabs.onActivated` (tab switch)
 - Listens for `chrome.tabs.onUpdated` (URL change)

@@ -14,11 +14,12 @@ async function getProfileName() {
       return userInfo.email;
     }
   } catch (e) {
-    // Ignore error, profile might not be available
+    // Log error to help diagnose profile issues
+    console.error('Failed to get profile info:', e);
   }
   
   // Fallback: Use a generic identifier
-  return 'Default Profile';
+  return 'Unknown profile';
 }
 
 // Send tab data to server

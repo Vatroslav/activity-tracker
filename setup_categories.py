@@ -42,40 +42,42 @@ def setup_categories():
     )
     print(f"  ✓ Learning category created (ID: {learning_id})")
     
-    # Create rules for Work category
-    print("\nCreating rules for Work category...")
+    personal_projects_id = database.add_category(
+        "Personal projects",
+        "#FFC107",
+        "Personal coding projects and repositories"
+    )
+    print(f"  ✓ Personal projects category created (ID: {personal_projects_id})")
+    
+    # Create rules for Personal projects category
+    print("\nCreating rules for Personal projects category...")
     
     database.add_category_rule(
         r"github\.com",
         "url",
-        work_id,
+        personal_projects_id,
         priority=10
     )
-    print("  ✓ GitHub URLs → Work")
-    
-    database.add_category_rule(
-        r"stackoverflow\.com",
-        "url",
-        work_id,
-        priority=10
-    )
-    print("  ✓ Stack Overflow URLs → Work")
+    print("  ✓ GitHub URLs → Personal projects")
     
     database.add_category_rule(
         r"code\.exe",
         "process_name",
-        work_id,
+        personal_projects_id,
         priority=8
     )
-    print("  ✓ VS Code → Work")
+    print("  ✓ VS Code → Personal projects")
     
     database.add_category_rule(
         r"pycharm.*\.exe",
         "process_name",
-        work_id,
+        personal_projects_id,
         priority=8
     )
-    print("  ✓ PyCharm → Work")
+    print("  ✓ PyCharm → Personal projects")
+    
+    # Create rules for Work category
+    print("\nCreating rules for Work category...")
     
     # Create rules for Entertainment category
     print("\nCreating rules for Entertainment category...")
@@ -103,14 +105,6 @@ def setup_categories():
         priority=8
     )
     print("  ✓ Reddit URLs → Entertainment")
-    
-    database.add_category_rule(
-        r"twitter\.com|x\.com",
-        "url",
-        entertainment_id,
-        priority=8
-    )
-    print("  ✓ Twitter/X URLs → Entertainment")
     
     # Create rules for Communication category
     print("\nCreating rules for Communication category...")
