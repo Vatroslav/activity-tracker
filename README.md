@@ -130,7 +130,16 @@ python reporter.py --app --limit 10
 
 ### Managing Categories
 
-Categories help organize your activities. You can add categories and rules programmatically:
+Categories help organize your activities. Use the provided example script to set up common categories:
+
+```bash
+# Quick setup with example categories (Work, Entertainment, Communication, Learning)
+python setup_categories.py
+```
+
+This creates 4 categories with 13 rules for common applications and websites.
+
+You can also add categories and rules programmatically:
 
 ```python
 import database
@@ -247,16 +256,17 @@ MIN_DURATION_SECONDS = 1          # Minimum duration to log
 
 ```
 activity-tracker/
-├── tracker.py           # Main tracker (tray app with HTTP server)
-├── reporter.py          # Ad-hoc reports (CLI)
-├── config.py            # Settings (port, paths, etc.)
-├── database.py          # DB schema and operations
-├── requirements.txt     # Python dependencies
-├── build.bat            # Script for creating .exe
-├── README.md            # This file
-└── extension/           # Chrome extension folder
-    ├── manifest.json    # Extension manifest
-    └── background.js    # Service worker that tracks tabs
+├── tracker.py              # Main tracker (tray app with HTTP server)
+├── reporter.py             # Ad-hoc reports (CLI)
+├── config.py               # Settings (port, paths, etc.)
+├── database.py             # DB schema and operations
+├── setup_categories.py     # Example script to create categories
+├── requirements.txt        # Python dependencies
+├── build.bat               # Script for creating .exe
+├── README.md               # This file
+└── extension/              # Chrome extension folder
+    ├── manifest.json       # Extension manifest
+    └── background.js       # Service worker that tracks tabs
 ```
 
 ## How It Works
