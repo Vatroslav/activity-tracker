@@ -61,13 +61,14 @@ def report_by_category(start_date: str = None, end_date: str = None, output_form
     
     # Prepare data for display
     table_data = []
-    total_seconds = 0
+    
+    # Calculate total first
+    total_seconds = sum(row['total_seconds'] for row in results)
     
     for row in results:
         category_name = row['category_name'] if row['category_name'] else "Uncategorized"
         duration = row['total_seconds']
         count = row['activity_count']
-        total_seconds += duration
         
         table_data.append([
             category_name,
@@ -111,6 +112,8 @@ def report_by_process(start_date: str = None, end_date: str = None, output_forma
     
     # Prepare data for display
     table_data = []
+    
+    # Calculate total first
     total_seconds = sum(r['total_seconds'] for r in results)
     
     for row in results:
@@ -157,13 +160,14 @@ def report_by_chrome_profile(start_date: str = None, end_date: str = None, outpu
     
     # Prepare data for display
     table_data = []
-    total_seconds = 0
+    
+    # Calculate total first
+    total_seconds = sum(row['total_seconds'] for row in results)
     
     for row in results:
         profile_name = row['chrome_profile']
         duration = row['total_seconds']
         count = row['activity_count']
-        total_seconds += duration
         
         table_data.append([
             profile_name,
