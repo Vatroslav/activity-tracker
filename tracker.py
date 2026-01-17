@@ -207,6 +207,13 @@ class ActivityTracker:
                 # Start tracking new activity
                 self.current_activity = activity
                 self.activity_start_time = time.time()
+                
+                # Update tray icon tooltip with current activity
+                if self.tray_icon:
+                    title = f"{activity['process_name']}"
+                    if activity.get('window_title'):
+                        title += f" - {activity['window_title'][:40]}"
+                    self.tray_icon.title = f"{config.APP_NAME}: {title}"
             
             time.sleep(config.POLLING_INTERVAL_SECONDS)
     
@@ -268,9 +275,13 @@ class ActivityTracker:
         else:
             status = "Status: Running"
         
-        print(status)
-        # In a real implementation, you might want to show a notification or popup
-        # For now, we just print to console
+        # Update the tray icon tooltip to show status
+        icon.title = f"{config.APP_NAME} - {status}"
+        
+        # For debugging/logging purposes (won't be visible in windowed mode)
+        # Users will see the status in the tray icon tooltip
+        import logging
+        logging.info(status)
     
     def create_menu(self):
         """Create the tray icon menu."""
