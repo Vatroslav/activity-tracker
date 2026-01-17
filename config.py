@@ -19,3 +19,10 @@ MIN_ACTIVITY_DURATION_SECONDS = 1  # Minimum duration to log an activity
 # Application settings
 APP_NAME = "Activity Tracker"
 TRAY_ICON_COLOR = (0, 120, 212)  # Windows blue
+
+# Chrome detection settings
+CHROME_PROCESS_NAMES = ["chrome.exe", "msedge.exe"]  # Chrome and Edge use CDP
+DEFAULT_CHROME_PROFILE = "Default"
+
+# Database field values
+MATCH_FIELDS = ["url", "window_title", "process_name"]

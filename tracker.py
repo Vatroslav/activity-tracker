@@ -51,8 +51,8 @@ class ActivityTracker:
                 'window_title': window_title,
                 'pid': pid
             }
-        except Exception as e:
-            print(f"Error getting active window info: {e}")
+        except (psutil.NoSuchProcess, psutil.AccessDenied, Exception) as e:
+            # Handle cases where process doesn't exist or we don't have permission
             return None
     
     def get_chrome_tab_info(self) -> Optional[Dict[str, str]]:
@@ -107,9 +107,9 @@ class ActivityTracker:
             # Try to get profile from the description or URL
             description = tab_info.get('description', '')
             # You could parse the user-data-dir from Chrome's command line
-            # For now, return a placeholder or None
-            return "Default"  # Simplified - would need more sophisticated detection
-        except:
+            # For now, return the default profile name
+            return config.DEFAULT_CHROME_PROFILE
+        except Exception:
             return None
     
     def match_category(self, activity: Dict[str, Any]) -> Optional[int]:
@@ -184,7 +184,9 @@ class ActivityTracker:
                 'chrome_profile': None
             }
             
-            if 'chrome.exe' in window_info['process_name'].lower():
+            # Check if the process is a Chromium-based browser
+            if any(chrome_proc.lower() in window_info['process_name'].lower() 
+                   for chrome_proc in config.CHROME_PROCESS_NAMES):
                 chrome_info = self.get_chrome_tab_info()
                 if chrome_info:
                     activity['url'] = chrome_info['url']

@@ -70,11 +70,17 @@ def report_by_category(start_date: str = None, end_date: str = None, output_form
         duration = row['total_seconds']
         count = row['activity_count']
         
+        # Calculate percentage - handle zero case
+        if total_seconds > 0:
+            percentage = f"{(duration / total_seconds) * 100:.1f}%"
+        else:
+            percentage = "0.0%"
+        
         table_data.append([
             category_name,
             format_duration(duration),
             count,
-            f"{(duration / max(total_seconds, 1)) * 100:.1f}%"
+            percentage
         ])
     
     # Add total row
@@ -82,7 +88,7 @@ def report_by_category(start_date: str = None, end_date: str = None, output_form
         "TOTAL",
         format_duration(total_seconds),
         sum(r['activity_count'] for r in results),
-        "100.0%"
+        "100.0%" if total_seconds > 0 else "0.0%"
     ])
     
     if output_format == "csv":
@@ -121,11 +127,17 @@ def report_by_process(start_date: str = None, end_date: str = None, output_forma
         duration = row['total_seconds']
         count = row['activity_count']
         
+        # Calculate percentage - handle zero case
+        if total_seconds > 0:
+            percentage = f"{(duration / total_seconds) * 100:.1f}%"
+        else:
+            percentage = "0.0%"
+        
         table_data.append([
             process_name,
             format_duration(duration),
             count,
-            f"{(duration / max(total_seconds, 1)) * 100:.1f}%"
+            percentage
         ])
     
     # Add total row
@@ -133,7 +145,7 @@ def report_by_process(start_date: str = None, end_date: str = None, output_forma
         "TOTAL (shown)",
         format_duration(total_seconds),
         sum(r['activity_count'] for r in results),
-        "100.0%"
+        "100.0%" if total_seconds > 0 else "0.0%"
     ])
     
     if output_format == "csv":
@@ -169,11 +181,17 @@ def report_by_chrome_profile(start_date: str = None, end_date: str = None, outpu
         duration = row['total_seconds']
         count = row['activity_count']
         
+        # Calculate percentage - handle zero case
+        if total_seconds > 0:
+            percentage = f"{(duration / total_seconds) * 100:.1f}%"
+        else:
+            percentage = "0.0%"
+        
         table_data.append([
             profile_name,
             format_duration(duration),
             count,
-            f"{(duration / max(total_seconds, 1)) * 100:.1f}%"
+            percentage
         ])
     
     # Add total row
@@ -181,7 +199,7 @@ def report_by_chrome_profile(start_date: str = None, end_date: str = None, outpu
         "TOTAL",
         format_duration(total_seconds),
         sum(r['activity_count'] for r in results),
-        "100.0%"
+        "100.0%" if total_seconds > 0 else "0.0%"
     ])
     
     if output_format == "csv":
