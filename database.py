@@ -7,6 +7,9 @@ from datetime import datetime
 from typing import Optional, List, Tuple, Dict, Any
 import config
 
+# Cache for compiled regex patterns
+_regex_cache = {}
+
 
 def get_connection() -> sqlite3.Connection:
     """Get a database connection."""
@@ -123,8 +126,14 @@ def match_category(process_name: str, window_title: str, url: Optional[str] = No
         elif rule['match_field'] == 'url':
             field_value = url
         
-        if field_value and re.search(rule['pattern'], field_value, re.IGNORECASE):
-            return rule['category_id']
+        if field_value:
+            # Use cached compiled regex pattern
+            pattern = rule['pattern']
+            if pattern not in _regex_cache:
+                _regex_cache[pattern] = re.compile(pattern, re.IGNORECASE)
+            
+            if _regex_cache[pattern].search(field_value):
+                return rule['category_id']
     
     return None
 

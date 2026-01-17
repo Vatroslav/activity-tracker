@@ -102,12 +102,15 @@ class ActivityTracker:
         
         return info
     
-    def save_current_activity(self):
+    def save_current_activity(self, end_time: Optional[datetime] = None):
         """Save the current activity to database."""
         if not self.current_activity or not self.activity_start_time:
             return
         
-        duration = int((datetime.now() - self.activity_start_time).total_seconds())
+        if end_time is None:
+            end_time = datetime.now()
+        
+        duration = int((end_time - self.activity_start_time).total_seconds())
         if duration < config.MIN_DURATION_SECONDS:
             return
         
@@ -128,6 +131,7 @@ class ActivityTracker:
         """Main tracking loop."""
         while self.running:
             if not self.paused:
+                current_time = datetime.now()
                 activity = self.get_current_activity()
                 
                 # Check if activity changed
@@ -141,12 +145,12 @@ class ActivityTracker:
                         activity_changed = True
                 
                 if activity_changed:
-                    # Save previous activity
-                    self.save_current_activity()
+                    # Save previous activity with current time
+                    self.save_current_activity(current_time)
                     
                     # Start tracking new activity
                     self.current_activity = activity
-                    self.activity_start_time = datetime.now()
+                    self.activity_start_time = current_time
             
             time.sleep(config.POLLING_INTERVAL_SECONDS)
     
