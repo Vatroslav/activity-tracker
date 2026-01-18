@@ -183,6 +183,23 @@ class ChromeDataHandler(BaseHTTPRequestHandler):
     
     tracker = None  # Will be set by setup_handler
     
+    def send_cors_headers(self):
+        """Send CORS headers to allow requests from Chrome extension.
+        
+        Note: Using '*' for Access-Control-Allow-Origin is acceptable here because
+        the server only listens on localhost and is not exposed to the internet.
+        Chrome extensions require CORS headers for fetch requests to HTTP servers.
+        """
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Methods', 'POST, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+    
+    def do_OPTIONS(self):
+        """Handle OPTIONS preflight request for CORS."""
+        self.send_response(200)
+        self.send_cors_headers()
+        self.end_headers()
+    
     def do_POST(self):
         """Handle POST request from Chrome extension."""
         if self.path == '/chrome-data':
@@ -199,16 +216,23 @@ class ChromeDataHandler(BaseHTTPRequestHandler):
                     self.tracker.update_chrome_data(url, title, profile)
                 
                 self.send_response(200)
+                self.send_cors_headers()
                 self.send_header('Content-Type', 'application/json')
                 self.end_headers()
                 self.wfile.write(json.dumps({'status': 'ok'}).encode())
             except Exception as e:
                 print(f"Error handling Chrome data: {e}")
                 self.send_response(500)
+                self.send_cors_headers()
+                self.send_header('Content-Type', 'application/json')
                 self.end_headers()
+                self.wfile.write(json.dumps({'status': 'error', 'message': 'Internal server error'}).encode())
         else:
             self.send_response(404)
+            self.send_cors_headers()
+            self.send_header('Content-Type', 'application/json')
             self.end_headers()
+            self.wfile.write(json.dumps({'status': 'error', 'message': 'Not found'}).encode())
     
     def log_message(self, format, *args):
         """Suppress default HTTP logging."""
