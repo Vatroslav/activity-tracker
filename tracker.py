@@ -183,6 +183,18 @@ class ChromeDataHandler(BaseHTTPRequestHandler):
     
     tracker = None  # Will be set by setup_handler
     
+    def send_cors_headers(self):
+        """Send CORS headers to allow requests from Chrome extension."""
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Methods', 'POST, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+    
+    def do_OPTIONS(self):
+        """Handle OPTIONS preflight request for CORS."""
+        self.send_response(200)
+        self.send_cors_headers()
+        self.end_headers()
+    
     def do_POST(self):
         """Handle POST request from Chrome extension."""
         if self.path == '/chrome-data':
@@ -199,6 +211,7 @@ class ChromeDataHandler(BaseHTTPRequestHandler):
                     self.tracker.update_chrome_data(url, title, profile)
                 
                 self.send_response(200)
+                self.send_cors_headers()
                 self.send_header('Content-Type', 'application/json')
                 self.end_headers()
                 self.wfile.write(json.dumps({'status': 'ok'}).encode())
