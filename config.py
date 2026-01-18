@@ -18,3 +18,19 @@ MIN_DURATION_SECONDS = 1
 
 # Default category for uncategorized activities
 UNCATEGORIZED_CATEGORY = "Uncategorized"
+
+# Idle timeout settings
+IDLE_TIMEOUT_MINUTES = 10
+IDLE_PROMPT_TIMEOUT_MINUTES = 2
+
+# Apps that are exceptions to idle detection (process names)
+IDLE_EXCEPTION_APPS = [
+    'spotify.exe',
+    'vlc.exe',
+]
+
+# URLs that are exceptions to idle detection (regex patterns)
+IDLE_EXCEPTION_URLS = [
+    r'youtube\.com',
+    r'netflix\.com',
+]
