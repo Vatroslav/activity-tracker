@@ -224,11 +224,15 @@ class ChromeDataHandler(BaseHTTPRequestHandler):
                 print(f"Error handling Chrome data: {e}")
                 self.send_response(500)
                 self.send_cors_headers()
+                self.send_header('Content-Type', 'application/json')
                 self.end_headers()
+                self.wfile.write(json.dumps({'status': 'error', 'message': 'Internal server error'}).encode())
         else:
             self.send_response(404)
             self.send_cors_headers()
+            self.send_header('Content-Type', 'application/json')
             self.end_headers()
+            self.wfile.write(json.dumps({'status': 'error', 'message': 'Not found'}).encode())
     
     def log_message(self, format, *args):
         """Suppress default HTTP logging."""
