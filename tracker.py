@@ -184,7 +184,12 @@ class ChromeDataHandler(BaseHTTPRequestHandler):
     tracker = None  # Will be set by setup_handler
     
     def send_cors_headers(self):
-        """Send CORS headers to allow requests from Chrome extension."""
+        """Send CORS headers to allow requests from Chrome extension.
+        
+        Note: Using '*' for Access-Control-Allow-Origin is acceptable here because
+        the server only listens on localhost and is not exposed to the internet.
+        Chrome extensions require CORS headers for fetch requests to HTTP servers.
+        """
         self.send_header('Access-Control-Allow-Origin', '*')
         self.send_header('Access-Control-Allow-Methods', 'POST, OPTIONS')
         self.send_header('Access-Control-Allow-Headers', 'Content-Type')
@@ -218,9 +223,11 @@ class ChromeDataHandler(BaseHTTPRequestHandler):
             except Exception as e:
                 print(f"Error handling Chrome data: {e}")
                 self.send_response(500)
+                self.send_cors_headers()
                 self.end_headers()
         else:
             self.send_response(404)
+            self.send_cors_headers()
             self.end_headers()
     
     def log_message(self, format, *args):
