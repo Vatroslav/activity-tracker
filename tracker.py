@@ -38,11 +38,21 @@ class LASTINPUTINFO(ctypes.Structure):
 
 def get_idle_seconds():
     """Get the number of seconds since last user input."""
-    lii = LASTINPUTINFO()
-    lii.cbSize = ctypes.sizeof(LASTINPUTINFO)
-    ctypes.windll.user32.GetLastInputInfo(ctypes.byref(lii))
-    millis = ctypes.windll.kernel32.GetTickCount() - lii.dwTime
-    return millis / 1000.0
+    try:
+        lii = LASTINPUTINFO()
+        lii.cbSize = ctypes.sizeof(LASTINPUTINFO)
+        
+        if not ctypes.windll.user32.GetLastInputInfo(ctypes.byref(lii)):
+            # GetLastInputInfo failed, assume not idle
+            return 0.0
+        
+        tick_count = ctypes.windll.kernel32.GetTickCount()
+        millis = tick_count - lii.dwTime
+        return millis / 1000.0
+    except Exception as e:
+        print(f"Error getting idle time: {e}")
+        # Return 0 on error to avoid false idle detection
+        return 0.0
 
 
 class ActivityTracker:
@@ -182,16 +192,19 @@ class ActivityTracker:
         response = self.show_idle_prompt()
         
         with self.lock:
-            self.idle_prompt_shown = False
-            
-            if response:
-                # User clicked YES - reset idle state and continue tracking
-                print("User responded to idle prompt: continuing tracking")
-                self.idle_start_time = None
-                self.idle_prompt_start_time = None
-            else:
-                # User clicked NO or closed dialog - treat as no response
-                print("User dismissed idle prompt")
+            # Only process response if we're still in idle state
+            # If user became active while prompt was shown, ignore the response
+            if self.idle_prompt_shown:
+                self.idle_prompt_shown = False
+                
+                if response:
+                    # User clicked YES - reset idle state and continue tracking
+                    print("User responded to idle prompt: continuing tracking")
+                    self.idle_start_time = None
+                    self.idle_prompt_start_time = None
+                else:
+                    # User clicked NO or closed dialog - treat as no response
+                    print("User dismissed idle prompt")
     
     def save_current_activity(self, end_time: Optional[datetime] = None):
         """Save the current activity to database."""
@@ -245,6 +258,7 @@ class ActivityTracker:
                     
                     # Reset idle state when activity changes
                     self.idle_start_time = None
+                    self.idle_prompt_shown = False
                     self.idle_prompt_start_time = None
                 
                 # Check idle status
@@ -294,6 +308,7 @@ class ActivityTracker:
                     if self.idle_start_time is not None:
                         print("User is active again")
                         self.idle_start_time = None
+                        self.idle_prompt_shown = False
                         self.idle_prompt_start_time = None
             
             time.sleep(config.POLLING_INTERVAL_SECONDS)
