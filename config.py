@@ -33,6 +33,4 @@ IDLE_EXCEPTION_APPS = [
 IDLE_EXCEPTION_URLS = [
     r'youtube\.com',
     r'netflix\.com',
-    r'twitch\.tv',
-    r'disneyplus\.com',
 ]
