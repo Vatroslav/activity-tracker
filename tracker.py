@@ -138,7 +138,7 @@ class ActivityTracker:
                 activity_changed = False
                 if activity != self.current_activity:
                     # Consider it changed if key fields differ
-                    if not self.current_activity or \
+                    if self.current_activity is None or activity is None or \
                        activity['process_name'] != self.current_activity['process_name'] or \
                        activity['window_title'] != self.current_activity['window_title'] or \
                        activity.get('url') != self.current_activity.get('url'):
