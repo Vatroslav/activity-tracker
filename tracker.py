@@ -5,6 +5,8 @@ Runs in system tray, tracks active windows, and receives Chrome tab data via HTT
 import sys
 import time
 import threading
+import ctypes
+import re
 from datetime import datetime
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import json
@@ -26,6 +28,23 @@ import config
 import database
 
 
+class LASTINPUTINFO(ctypes.Structure):
+    """Windows structure for GetLastInputInfo."""
+    _fields_ = [
+        ('cbSize', ctypes.c_uint),
+        ('dwTime', ctypes.c_uint),
+    ]
+
+
+def get_idle_seconds():
+    """Get the number of seconds since last user input."""
+    lii = LASTINPUTINFO()
+    lii.cbSize = ctypes.sizeof(LASTINPUTINFO)
+    ctypes.windll.user32.GetLastInputInfo(ctypes.byref(lii))
+    millis = ctypes.windll.kernel32.GetTickCount() - lii.dwTime
+    return millis / 1000.0
+
+
 class ActivityTracker:
     """Main tracker class that monitors active windows and Chrome tabs."""
     
@@ -36,6 +55,11 @@ class ActivityTracker:
         self.activity_start_time = None
         self.chrome_data = {}  # Store latest Chrome data by window handle
         self.lock = threading.Lock()
+        
+        # Idle detection state
+        self.idle_start_time = None
+        self.idle_prompt_shown = False
+        self.idle_prompt_start_time = None
         
         # Initialize database
         database.initialize_database()
@@ -102,6 +126,73 @@ class ActivityTracker:
         
         return info
     
+    def is_exception_app(self, process_name: str) -> bool:
+        """Check if the process is on the idle exception list."""
+        if not process_name:
+            return False
+        process_lower = process_name.lower()
+        return any(app.lower() == process_lower for app in config.IDLE_EXCEPTION_APPS)
+    
+    def is_exception_url(self, url: Optional[str]) -> bool:
+        """Check if the URL matches any idle exception pattern."""
+        if not url:
+            return False
+        for pattern in config.IDLE_EXCEPTION_URLS:
+            if re.search(pattern, url, re.IGNORECASE):
+                return True
+        return False
+    
+    def is_idle_exception(self, activity: Optional[Dict[str, Any]]) -> bool:
+        """Check if current activity is an exception to idle detection."""
+        if not activity:
+            return False
+        
+        # Check if process is on exception list
+        if self.is_exception_app(activity.get('process_name', '')):
+            return True
+        
+        # Check if URL matches exception pattern
+        if self.is_exception_url(activity.get('url')):
+            return True
+        
+        return False
+    
+    def show_idle_prompt(self) -> bool:
+        """Show Windows prompt asking if user is still present.
+        
+        Returns True if user clicked YES, False if user clicked NO or closed dialog.
+        This is a blocking call.
+        """
+        MB_YESNO = 0x4
+        MB_ICONQUESTION = 0x20
+        MB_TOPMOST = 0x40000
+        IDYES = 6
+        
+        result = ctypes.windll.user32.MessageBoxW(
+            0,
+            "You appear to be idle. Are you still here?",
+            "Activity Tracker - Idle Detection",
+            MB_YESNO | MB_ICONQUESTION | MB_TOPMOST
+        )
+        
+        return result == IDYES
+    
+    def handle_idle_prompt_thread(self):
+        """Handle idle prompt in a separate thread."""
+        response = self.show_idle_prompt()
+        
+        with self.lock:
+            self.idle_prompt_shown = False
+            
+            if response:
+                # User clicked YES - reset idle state and continue tracking
+                print("User responded to idle prompt: continuing tracking")
+                self.idle_start_time = None
+                self.idle_prompt_start_time = None
+            else:
+                # User clicked NO or closed dialog - treat as no response
+                print("User dismissed idle prompt")
+    
     def save_current_activity(self, end_time: Optional[datetime] = None):
         """Save the current activity to database."""
         if not self.current_activity or not self.activity_start_time:
@@ -151,6 +242,59 @@ class ActivityTracker:
                     # Start tracking new activity
                     self.current_activity = activity
                     self.activity_start_time = current_time
+                    
+                    # Reset idle state when activity changes
+                    self.idle_start_time = None
+                    self.idle_prompt_start_time = None
+                
+                # Check idle status
+                idle_seconds = get_idle_seconds()
+                idle_minutes = idle_seconds / 60.0
+                
+                # Track when user became idle
+                if idle_minutes >= config.IDLE_TIMEOUT_MINUTES:
+                    if self.idle_start_time is None:
+                        # User just became idle
+                        self.idle_start_time = current_time
+                        print(f"User idle detected ({idle_minutes:.1f} minutes)")
+                    
+                    # Check if we should show prompt
+                    if not self.idle_prompt_shown and self.idle_prompt_start_time is None:
+                        # Check if current activity is an exception
+                        if self.is_idle_exception(self.current_activity):
+                            print(f"Idle exception detected: {self.current_activity.get('process_name', 'Unknown')} - continuing tracking")
+                        else:
+                            # Save current activity before showing prompt
+                            self.save_current_activity(current_time)
+                            
+                            # Show prompt in a separate thread (non-blocking)
+                            self.idle_prompt_shown = True
+                            self.idle_prompt_start_time = current_time
+                            prompt_thread = threading.Thread(target=self.handle_idle_prompt_thread, daemon=True)
+                            prompt_thread.start()
+                            print("Showing idle prompt...")
+                    
+                    # Check if prompt timeout expired
+                    elif self.idle_prompt_start_time is not None and not self.idle_prompt_shown:
+                        # Prompt was shown and dismissed, check timeout
+                        prompt_elapsed = (current_time - self.idle_prompt_start_time).total_seconds() / 60.0
+                        if prompt_elapsed >= config.IDLE_PROMPT_TIMEOUT_MINUTES:
+                            # No response within timeout - delete recent activity
+                            print(f"Idle prompt timeout - deleting last {config.IDLE_TIMEOUT_MINUTES} minutes of activity")
+                            deleted = database.delete_recent_activity(config.IDLE_TIMEOUT_MINUTES)
+                            print(f"Deleted {deleted} activity records")
+                            
+                            # Reset tracking state
+                            self.current_activity = None
+                            self.activity_start_time = None
+                            self.idle_start_time = None
+                            self.idle_prompt_start_time = None
+                else:
+                    # User is active - reset idle state
+                    if self.idle_start_time is not None:
+                        print("User is active again")
+                        self.idle_start_time = None
+                        self.idle_prompt_start_time = None
             
             time.sleep(config.POLLING_INTERVAL_SECONDS)
     
@@ -167,6 +311,10 @@ class ActivityTracker:
         self.paused = True
         self.current_activity = None
         self.activity_start_time = None
+        # Reset idle state when pausing
+        self.idle_start_time = None
+        self.idle_prompt_shown = False
+        self.idle_prompt_start_time = None
     
     def resume(self):
         """Resume tracking."""

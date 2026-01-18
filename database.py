@@ -207,3 +207,27 @@ def get_activities(start_date: Optional[str] = None, end_date: Optional[str] = N
     activities = [dict(row) for row in cursor.fetchall()]
     conn.close()
     return activities
+
+
+def delete_recent_activity(minutes: int):
+    """Delete activity logs from the last N minutes."""
+    from datetime import datetime, timedelta
+    
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    # Calculate the cutoff time
+    cutoff_time = datetime.now() - timedelta(minutes=minutes)
+    cutoff_str = cutoff_time.isoformat()
+    
+    # Delete entries where timestamp > cutoff_time
+    cursor.execute("""
+        DELETE FROM activity_log
+        WHERE timestamp > ?
+    """, (cutoff_str,))
+    
+    deleted_count = cursor.rowcount
+    conn.commit()
+    conn.close()
+    
+    return deleted_count
